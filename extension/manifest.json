@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Claude Terminal Sidebar",
+  "version": "0.3.0",
+  "description": "Side panel terminal that runs a real shell next to your localhost dev page, with a click-to-pick element inspector that sends context into the running claude session.",
+  "permissions": ["sidePanel", "storage", "tabs", "nativeMessaging", "scripting", "activeTab"],
+  "host_permissions": [
+    "http://localhost/*",
+    "http://localhost:*/*",
+    "http://127.0.0.1/*",
+    "http://127.0.0.1:*/*",
+    "file:///*"
+  ],
+  "background": { "service_worker": "background.js" },
+  "side_panel": { "default_path": "sidepanel.html" },
+  "action": { "default_title": "Open terminal sidebar" },
+  "icons": { "128": "icons/icon128.png" }
+}

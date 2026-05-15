@@ -1,0 +1,5 @@
+#!/bin/bash
+# Wrapper invoked by Chrome. install.sh fills in absolute paths because
+# Chrome spawns native hosts with a minimal PATH that doesn't include
+# NVM/Homebrew bins.
+exec __NODE__ __NATIVE_HOST_JS__

@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="vendor/xterm.css" />
+    <style>
+      html, body { margin: 0; height: 100%; background: #0b0b0b; color: #ddd;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; }
+      #bar { display: flex; gap: 8px; align-items: center; padding: 6px 10px;
+        background: #161616; border-bottom: 1px solid #222; font-size: 12px; }
+      #status { width: 8px; height: 8px; border-radius: 50%; background: #888; }
+      #status.up { background: #4ade80; } #status.down { background: #ef4444; }
+      #cwd { color: #8aa; font-family: ui-monospace, Menlo, monospace; flex: 1;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      button { background: #222; color: #ddd; border: 1px solid #333;
+        padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+      button:hover { background: #2a2a2a; }
+      #term { position: absolute; top: 33px; bottom: 0; left: 0; right: 0; padding: 4px; }
+      #term.drag::after {
+        content: "drop file paths or text"; position: absolute; inset: 0;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(74, 222, 128, 0.10);
+        border: 2px dashed #4ade80; color: #4ade80;
+        font-size: 13px; letter-spacing: 0.04em;
+        pointer-events: none; z-index: 10;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="bar">
+      <span id="status" title="server status"></span>
+      <span id="cwd">connecting…</span>
+      <button id="pick" title="Pick element on the active localhost tab (Esc to cancel)">pick</button>
+      <button id="claude">claude</button>
+      <button id="reconnect">reconnect</button>
+    </div>
+    <div id="term"></div>
+    <script src="vendor/xterm.js"></script>
+    <script src="vendor/xterm-addon-fit.js"></script>
+    <script src="sidepanel.js"></script>
+  </body>
+</html>
