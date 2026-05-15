@@ -155,10 +155,13 @@ termEl.addEventListener("drop", (e) => {
   const text = dt.getData("text/plain");
   if (text) { sendInput(text); return; }
 
-  // Last resort: bare filenames (path is hidden by the browser).
+  // Last resort: bare filenames. Chrome strips OS paths from DataTransfer
+  // in side-panel context — drop on the page itself for full paths
+  // (handled by content.js → cts-dropped-files).
   if (dt.files?.length) {
     const names = [...dt.files].map((f) => shellQuote(f.name));
     sendInput(names.join(" "));
+    flashStatus("filename only — drop on the page for full paths");
   }
 }, { capture: true });
 
@@ -235,6 +238,11 @@ async function startPick() {
 }
 
 chrome.runtime.onMessage.addListener((msg) => {
+  if (msg?.type === "cts-dropped-files") {
+    if (!port || !ready) { flashStatus("no shell yet"); return; }
+    sendInput(msg.paths.map(shellQuote).join(" "));
+    return;
+  }
   if (msg?.type !== "cts-picked") return;
   if (!port || !ready) {
     flashStatus("no shell yet");
@@ -249,6 +257,29 @@ chrome.runtime.onMessage.addListener((msg) => {
 });
 
 document.getElementById("pick").onclick = startPick;
+
+// Keep content.js installed on the active localhost/file tab so its drop
+// forwarder is always live (drops on the page → real paths to the panel).
+// Idempotent: content.js self-guards against double-init.
+async function ensureContentScript(tabId, url) {
+  const ok = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/i.test(url || "")
+          || /^file:\/\//i.test(url || "");
+  if (!ok) return;
+  try {
+    await chrome.scripting.executeScript({ target: { tabId }, files: ["content.js"] });
+  } catch { /* tab gone, no host perm, etc. — silent */ }
+}
+async function ensureForActiveTab() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tab?.id) ensureContentScript(tab.id, tab.url);
+}
+ensureForActiveTab();
+chrome.tabs.onActivated.addListener(({ tabId }) =>
+  chrome.tabs.get(tabId).then((t) => ensureContentScript(t.id, t.url)).catch(() => {})
+);
+chrome.tabs.onUpdated.addListener((tabId, info, tab) => {
+  if (info.status === "complete") ensureContentScript(tabId, tab.url);
+});
 
 document.getElementById("claude").onclick = () => sendInput("claude\r");
 document.getElementById("reconnect").onclick = () => {

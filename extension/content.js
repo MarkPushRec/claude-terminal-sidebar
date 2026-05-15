@@ -175,4 +175,46 @@
     if (msg?.type === "cts-pick-start") start();
     if (msg?.type === "cts-pick-stop") stop();
   });
+
+  // ---- file drop forwarder ----
+  // Side panels don't get `file://` URIs in DataTransfer (Chrome strips them),
+  // but regular pages do. We capture OS file drops here and forward absolute
+  // paths to the side panel, which shell-quotes and pastes into the PTY.
+
+  function decodeFileUri(uri) {
+    if (!uri.startsWith("file://")) return null;
+    let p = uri.slice("file://".length);
+    if (!p.startsWith("/")) {
+      const slash = p.indexOf("/");
+      p = slash >= 0 ? p.slice(slash) : "/";
+    }
+    try { return decodeURIComponent(p); } catch { return p; }
+  }
+
+  document.addEventListener("dragover", (e) => {
+    // Only consume if it's an OS file drag — leaves page-internal drags alone.
+    if (e.dataTransfer && [...(e.dataTransfer.types || [])].includes("Files")) {
+      e.preventDefault();
+    }
+  }, true);
+
+  document.addEventListener("drop", (e) => {
+    const dt = e.dataTransfer;
+    if (!dt || ![...(dt.types || [])].includes("Files")) return;
+    const uriList = dt.getData("text/uri-list") || "";
+    const paths = [];
+    for (const line of uriList.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const p = decodeFileUri(trimmed);
+      if (p) paths.push(p);
+    }
+    if (paths.length) {
+      // Only swallow the event when we actually have something to forward —
+      // lets legit upload UIs on the page still receive drops we can't help with.
+      e.preventDefault();
+      e.stopPropagation();
+      chrome.runtime.sendMessage({ type: "cts-dropped-files", paths });
+    }
+  }, true);
 })();
